@@ -1,0 +1,18 @@
+node_modules/
+out/
+dist/
+release/
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+.aptana-test-tmp/
+
+# Keamanan: jangan pernah mengunggah kredensial, vault, atau paket terenkripsi
+.env
+.env.*
+*.vault.json
+*.hmwpack
+*.pem
+*.key
+gemini.config.json
