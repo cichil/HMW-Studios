@@ -3,7 +3,7 @@
   "version": "4.0.0",
   "description": "HMW Studio — Native Desktop Web, PHP & Remote Server IDE with Project Manager, Visual SFTP/FTPS Synchronizer, Gemini AI, ConPTY/SSH Terminal, Git & Live Preview",
   "main": "./out/main/index.js",
-  "author": "HMW Studio",
+  "author": "Hermawan Wiryana",
   "license": "GPL-3.0-or-later",
   "scripts": {
     "dev": "electron-vite dev",
@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "package:win": "npm run build && electron-builder --win --dir",
+    "installer:win": "npm run build && electron-builder --win nsis",
     "dist:win": "npm run build && electron-builder --win"
   },
   "dependencies": {
@@ -54,6 +55,7 @@
   "build": {
     "appId": "com.hmw.studio",
     "productName": "HMW Studio",
+    "copyright": "Copyright © 2026 Hermawan Wiryana",
     "directories": {
       "buildResources": "resources",
       "output": "release"
@@ -83,12 +85,29 @@
           ]
         },
         {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
           "target": "zip",
           "arch": [
             "x64"
           ]
         }
       ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "HMW Studio",
+      "installerIcon": "resources/icon.ico",
+      "uninstallerIcon": "resources/icon.ico",
+      "artifactName": "HMW-Studio-Setup-${version}-${arch}.${ext}"
     },
     "artifactName": "HMW-Studio-${os}-${arch}.${ext}"
   }

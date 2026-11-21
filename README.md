@@ -47,21 +47,43 @@
 
 ---
 
-## Perintah Pengembangan, Pengujian & Build `.exe`
+## Cara Download & Instalasi (Windows 10/11 x64)
+
+### Opsi 1 — Installer Windows *(Paling Mudah, Tanpa Node.js)*
+1. Buka halaman **[GitHub Releases](https://github.com/cichil/HMW-Studios/releases)**.
+2. Unduh file **`HMW-Studio-Setup-4.0.0-x64.exe`**.
+3. Klik 2× file installer, pilih folder tujuan instalasi, lalu klik **Install** (otomatis membuat shortcut di **Desktop** & **Start Menu** serta *Uninstaller* resmi di Windows Apps).
+
+### Opsi 2 — Versi Portable `.ZIP` *(Tanpa Instalasi)*
+1. Unduh **`HMW-Studio-win-x64.zip`** dari halaman **[GitHub Releases](https://github.com/cichil/HMW-Studios/releases)**.
+2. Ekstrak ke folder mana saja (misalnya `C:\Tools\HMW-Studio\`).
+3. Klik 2× **`HMW Studio.exe`** — langsung berjalan tanpa instalasi.
+
+> **Tips Tim:** Untuk memindahkan seluruh profil SFTP, Database, *Saved Queries*, & koleksi HTTP ke komputer baru, gunakan fitur **`Proyek` → `Ekspor / Impor .hmwpack`** (terenkripsi AES-256-GCM).
+
+### Opsi 3 — Download & Build dari Source Code *(Untuk Developer)*
+
+**Prasyarat:** **Git**, **Node.js 20+ / 24 LTS**, serta *(opsional, disarankan)* **PHP 8 CLI** (mis. dari XAMPP/Laragon) untuk fitur *linter* `php -l`, perbaikan lokal offline, & *PHP Tinker*.
 
 ```powershell
-# Instalasi dependensi
+# 1. Clone repositori dari GitHub
+git clone https://github.com/cichil/HMW-Studios.git
+cd HMW-Studios
+
+# 2. Instalasi dependensi
 npm.cmd install
 
-# Jalankan mode pengembangan (Hot-Reload)
+# 3. Jalankan mode pengembangan (Hot-Reload)
 npm.cmd run dev
 
-# Jalankan seluruh 61 uji otomatis (Vitest)
+# 4. Jalankan seluruh 61 uji otomatis (Vitest)
 npm.cmd test
 
-# Verifikasi TypeScript & build produksi
-npm.cmd run build
-
-# Paketkan aplikasi desktop Windows 64-bit (release\win-unpacked\HMW Studio.exe)
-npx.cmd electron-builder --win --dir
+# 5. Bangun Installer Windows (HMW-Studio-Setup-4.0.0-x64.exe) + Portable (.zip) + Unpacked (.exe)
+npm.cmd run dist:win
 ```
+
+Hasil build tersedia di folder `release\`:
+- `release\HMW-Studio-Setup-4.0.0-x64.exe` — **Installer Windows (NSIS Setup)**
+- `release\HMW-Studio-win-x64.zip` — **Arsip Portable Standalone x64**
+- `release\win-unpacked\HMW Studio.exe` — **Aplikasi Desktop Native Siap Jalankan**
