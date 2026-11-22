@@ -3,14 +3,18 @@ import {
   Blocks,
   BookOpen,
   Database,
+  Download,
+  ExternalLink,
   Files,
   FolderKanban,
   GitBranch,
   Globe,
   History,
   ListTree,
+  RefreshCw,
   Search,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { useIdeStore } from './store/useIdeStore';
 import { TopToolbar } from './components/TopToolbar';
@@ -140,7 +144,15 @@ export const App: React.FC = () => {
     refreshTree,
     pushTransferLog,
     bumpPreviewReload,
-    setPaletteMode
+    setPaletteMode,
+    appUpdateState,
+    updateBannerDismissed,
+    setAppUpdateState,
+    dismissUpdateBanner,
+    checkForAppUpdates,
+    downloadAppUpdate,
+    installAppUpdate,
+    openAppReleasePage
   } = useIdeStore();
 
   useEffect(() => {
@@ -172,6 +184,13 @@ export const App: React.FC = () => {
     });
     const unsubXdebug = window.aptana.xdebug.onEvent((evt) => {
       useIdeStore.getState().handleXdebugEvent(evt);
+    });
+    void window.aptana.updater
+      .getState()
+      .then((st) => setAppUpdateState(st))
+      .catch(() => {});
+    const unsubUpdater = window.aptana.updater.onStateChanged((st) => {
+      useIdeStore.getState().setAppUpdateState(st);
     });
     const unsubIslandCmd = window.aptana.island.onCommand((cmd) => {
       if (cmd.type === 'focus-ide') {
@@ -295,6 +314,7 @@ export const App: React.FC = () => {
       unsubDbProgress();
       unsubDbPartial();
       unsubXdebug();
+      unsubUpdater();
       unsubIslandCmd();
       unsubShortcut();
       window.removeEventListener('keydown', onKeyDown, true);
@@ -425,10 +445,126 @@ export const App: React.FC = () => {
     window.addEventListener('mouseup', onUp);
   };
 
+  const showUpdateBanner =
+    !updateBannerDismissed &&
+    (appUpdateState.phase === 'available' ||
+      appUpdateState.phase === 'downloading' ||
+      appUpdateState.phase === 'downloaded');
+
   return (
     <div className="ide-shell">
       <StartupSplash />
       <TopToolbar />
+
+      {showUpdateBanner && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+            padding: '5px 14px',
+            background:
+              appUpdateState.phase === 'downloaded'
+                ? 'linear-gradient(90deg, rgba(16, 185, 129, 0.2), rgba(14, 165, 233, 0.14))'
+                : 'linear-gradient(90deg, rgba(56, 189, 248, 0.18), rgba(249, 115, 22, 0.14))',
+            borderBottom: '1px solid var(--border-strong)',
+            fontSize: 12,
+            flexWrap: 'wrap'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                fontWeight: 700,
+                color: appUpdateState.phase === 'downloaded' ? '#4ade80' : '#38bdf8'
+              }}
+            >
+              <Download size={13.5} />
+              {appUpdateState.phase === 'downloaded'
+                ? `Pembaruan HMW Studio v${appUpdateState.latestVersion ?? ''} siap dipasang!`
+                : appUpdateState.phase === 'downloading'
+                  ? `Mengunduh HMW Studio v${appUpdateState.latestVersion ?? ''} (${Math.round(appUpdateState.downloadPercent ?? 0)}%)`
+                  : `Versi baru HMW Studio v${appUpdateState.latestVersion ?? ''} tersedia di GitHub!`}
+            </span>
+            {appUpdateState.phase === 'downloading' ? (
+              <div
+                style={{
+                  width: 140,
+                  height: 6,
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.12)',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  style={{
+                    width: `${Math.min(100, Math.max(0, appUpdateState.downloadPercent ?? 0))}%`,
+                    height: '100%',
+                    background: 'var(--accent)',
+                    transition: 'width 0.2s ease'
+                  }}
+                />
+              </div>
+            ) : (
+              <span style={{ color: 'var(--text-secondary)', fontSize: 11.5 }}>
+                {appUpdateState.phase === 'downloaded'
+                  ? 'Aplikasi akan restart otomatis untuk menerapkan pembaruan.'
+                  : appUpdateState.canAutoInstall
+                    ? `Versi terpasang v${appUpdateState.currentVersion} → v${appUpdateState.latestVersion}.`
+                    : `Mode Portable (v${appUpdateState.currentVersion}): klik Unduh untuk mengambil Installer / ZIP terbaru.`}
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {appUpdateState.phase === 'available' && (
+              <button
+                type="button"
+                className="btn btn-accent"
+                style={{ padding: '3px 10px', fontSize: 11.5 }}
+                onClick={() => void downloadAppUpdate()}
+              >
+                <Download size={12.5} />
+                <span>{appUpdateState.canAutoInstall ? 'Unduh & Pasang' : 'Unduh dari GitHub'}</span>
+              </button>
+            )}
+            {appUpdateState.phase === 'downloaded' && (
+              <button
+                type="button"
+                className="btn btn-accent"
+                style={{ padding: '3px 10px', fontSize: 11.5, background: '#10b981', borderColor: '#10b981' }}
+                onClick={() => void installAppUpdate()}
+              >
+                <RefreshCw size={12.5} />
+                <span>Restart &amp; Pasang Sekarang</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-ghost"
+              style={{ padding: '3px 8px', fontSize: 11 }}
+              onClick={() => void openAppReleasePage()}
+              title="Lihat daftar perubahan (Release Notes) di GitHub"
+            >
+              <ExternalLink size={12} />
+              <span>Catatan Rilis</span>
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              style={{ padding: 3 }}
+              onClick={() => dismissUpdateBanner()}
+              title="Sembunyikan sementara (masih bisa diakses dari Status Bar kanan bawah)"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="ide-body">
         <nav className="activity-bar">
@@ -754,7 +890,49 @@ export const App: React.FC = () => {
               <span>• UTF-8</span>
             </span>
           )}
-          <span>{systemVersionLabel}</span>
+          <span
+            style={{
+              cursor: 'pointer',
+              fontWeight: 600,
+              color:
+                appUpdateState.phase === 'downloaded'
+                  ? '#4ade80'
+                  : appUpdateState.phase === 'available' || appUpdateState.phase === 'downloading'
+                    ? '#38bdf8'
+                    : 'var(--text-secondary)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+            onClick={() => {
+              if (appUpdateState.phase === 'downloaded') {
+                void installAppUpdate();
+              } else if (appUpdateState.phase === 'available') {
+                void downloadAppUpdate();
+              } else if (appUpdateState.phase !== 'checking' && appUpdateState.phase !== 'downloading') {
+                void checkForAppUpdates(false);
+              }
+            }}
+            title={
+              appUpdateState.phase === 'downloaded'
+                ? `HMW Studio v${appUpdateState.latestVersion} siap dipasang — klik untuk restart & update sekarang`
+                : appUpdateState.phase === 'available'
+                  ? `HMW Studio v${appUpdateState.latestVersion} tersedia di GitHub — klik untuk mengunduh`
+                  : appUpdateState.phase === 'downloading'
+                    ? `Sedang mengunduh pembaruan v${appUpdateState.latestVersion} (${Math.round(appUpdateState.downloadPercent ?? 0)}%)`
+                    : `${systemVersionLabel} (v${appUpdateState.currentVersion}) — Klik untuk cek pembaruan otomatis dari GitHub Releases`
+            }
+          >
+            {appUpdateState.phase === 'checking'
+              ? '⏳ Cek Update...'
+              : appUpdateState.phase === 'downloading'
+                ? `⬇ Update ${Math.round(appUpdateState.downloadPercent ?? 0)}%`
+                : appUpdateState.phase === 'downloaded'
+                  ? `✅ Pasang v${appUpdateState.latestVersion}`
+                  : appUpdateState.phase === 'available'
+                    ? `🔔 Update v${appUpdateState.latestVersion}`
+                    : `v${appUpdateState.currentVersion} • ↻ Update`}
+          </span>
         </div>
       </footer>
 

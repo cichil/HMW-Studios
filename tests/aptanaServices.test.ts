@@ -79,6 +79,12 @@ import {
   detectDangerousSshCommand
 } from '../src/shared/sshSnippetsCatalog';
 import {
+  compareSemver,
+  isNewerVersion,
+  normalizeVersionTag,
+  pickWindowsReleaseDownloadUrl
+} from '../src/shared/appUpdaterHelpers';
+import {
   decryptWorkspaceBundle,
   encryptWorkspaceBundle
 } from '../src/main/services/workspaceBundleCrypto';
@@ -4163,5 +4169,64 @@ $sql = "select * from keluhan "
     expect(fix6.fixed).toBe(true);
     const check6 = await phpSvc.lint(fix6.fixedCode!);
     expect(check6.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
+  });
+
+  it('Auto-Updater & GitHub Actions Release Pipeline: semver comparator, pemilih aset Windows, & konfigurasi CI/publish lengkap', async () => {
+    expect(compareSemver('4.0.1', '4.0.0')).toBeGreaterThan(0);
+    expect(compareSemver('v4.1.0', '4.0.9')).toBeGreaterThan(0);
+    expect(compareSemver('4.0.1', '4.0.1')).toBe(0);
+    expect(compareSemver('4.0.1-beta.1', '4.0.1')).toBeLessThan(0);
+    expect(isNewerVersion('4.0.0', 'v4.0.1')).toBe(true);
+    expect(isNewerVersion('4.0.1', '4.0.1')).toBe(false);
+    expect(normalizeVersionTag('v4.0.1')).toBe('4.0.1');
+
+    const pickedSetup = pickWindowsReleaseDownloadUrl({
+      html_url: 'https://github.com/cichil/HMW-Studios/releases/tag/v4.0.1',
+      assets: [
+        {
+          name: 'HMW-Studio-win-x64.zip',
+          browser_download_url: 'https://github.com/cichil/HMW-Studios/releases/download/v4.0.1/HMW-Studio-win-x64.zip'
+        },
+        {
+          name: 'HMW-Studio-Setup-4.0.1-x64.exe',
+          browser_download_url: 'https://github.com/cichil/HMW-Studios/releases/download/v4.0.1/HMW-Studio-Setup-4.0.1-x64.exe'
+        }
+      ]
+    });
+    expect(pickedSetup).toContain('HMW-Studio-Setup-4.0.1-x64.exe');
+
+    const pickedZipFallback = pickWindowsReleaseDownloadUrl({
+      html_url: 'https://github.com/cichil/HMW-Studios/releases/tag/v4.0.1',
+      assets: [
+        {
+          name: 'HMW-Studio-win-x64.zip',
+          browser_download_url: 'https://github.com/cichil/HMW-Studios/releases/download/v4.0.1/HMW-Studio-win-x64.zip'
+        }
+      ]
+    });
+    expect(pickedZipFallback).toContain('HMW-Studio-win-x64.zip');
+
+    // Pastikan konfigurasi package.json publish & workflow GitHub Actions tersedia lengkap
+    const pkgRaw = await readFile(join(process.cwd(), 'package.json'), 'utf8');
+    const pkg = JSON.parse(pkgRaw) as {
+      version: string;
+      dependencies?: Record<string, string>;
+      build?: { publish?: Array<{ provider?: string; owner?: string; repo?: string }> };
+    };
+    expect(pkg.dependencies?.['electron-updater']).toBeTruthy();
+    expect(pkg.build?.publish?.[0]).toMatchObject({
+      provider: 'github',
+      owner: 'cichil',
+      repo: 'HMW-Studios'
+    });
+
+    const workflowRaw = await readFile(
+      join(process.cwd(), '.github', 'workflows', 'release.yml'),
+      'utf8'
+    );
+    expect(workflowRaw).toContain('softprops/action-gh-release@v2');
+    expect(workflowRaw).toContain('release/latest.yml');
+    expect(workflowRaw).toContain('HMW-Studio-Setup-*-x64.exe');
+    expect(workflowRaw).toContain('HMW-Studio-win-x64.zip');
   });
 });

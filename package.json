@@ -1,6 +1,6 @@
 {
   "name": "hmw-studio",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "HMW Studio — Native Desktop Web, PHP & Remote Server IDE with Project Manager, Visual SFTP/FTPS Synchronizer, Gemini AI, ConPTY/SSH Terminal, Git & Live Preview",
   "main": "./out/main/index.js",
   "author": "Hermawan Wiryana",
@@ -13,13 +13,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "package:win": "npm run build && electron-builder --win --dir",
-    "installer:win": "npm run build && electron-builder --win nsis",
-    "dist:win": "npm run build && electron-builder --win"
+    "installer:win": "npm run build && electron-builder --win nsis --publish never",
+    "dist:win": "npm run build && electron-builder --win --publish never"
   },
   "dependencies": {
     "@google/genai": "^3.3.0",
     "basic-ftp": "^6.2.6",
     "chokidar": "^6.0.0",
+    "electron-updater": "^6.8.11",
     "mysql2": "^3.24.6",
     "pg": "^8.23.1",
     "simple-git": "^4.0.2",
@@ -109,6 +110,14 @@
       "uninstallerIcon": "resources/icon.ico",
       "artifactName": "HMW-Studio-Setup-${version}-${arch}.${ext}"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "cichil",
+        "repo": "HMW-Studios",
+        "releaseType": "release"
+      }
+    ],
     "artifactName": "HMW-Studio-${os}-${arch}.${ext}"
   }
 }

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type {
+  AppUpdateStateDto,
   AptanaBridgeAPI,
   DbValueSearchProgressEvent,
   DesktopIslandCommand,
@@ -383,6 +384,14 @@ const api: AptanaBridgeAPI = {
     onActivity: (cb) => subscribe<IslandActivity>('island:activity', cb),
     onSnapshot: (cb) => subscribe<DesktopIslandSnapshot>('island:snapshot', cb),
     onCommand: (cb) => subscribe<DesktopIslandCommand>('island:command', cb)
+  },
+  updater: {
+    getState: () => ipcRenderer.invoke('updater:getState'),
+    checkForUpdates: () => ipcRenderer.invoke('updater:checkForUpdates'),
+    downloadUpdate: () => ipcRenderer.invoke('updater:downloadUpdate'),
+    quitAndInstall: () => ipcRenderer.invoke('updater:quitAndInstall'),
+    openReleasePage: () => ipcRenderer.invoke('updater:openReleasePage'),
+    onStateChanged: (cb) => subscribe<AppUpdateStateDto>('updater:stateChanged', cb)
   }
 };
 

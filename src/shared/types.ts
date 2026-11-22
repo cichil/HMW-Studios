@@ -7,6 +7,9 @@ import type { ParsedXlsxWorkbook } from './xlsxReader';
 import type { HttpCollectionWorkspace } from './apiCollectionEngine';
 import type { MultiSshExecItemResult, SshSnippetItem } from './sshSnippetsCatalog';
 import type { XdebugBreakpointItem, XdebugInitInfo, XdebugStackFrame, XdebugVariableItem } from './xdebugProtocol';
+import type { AppUpdateStateDto } from './appUpdaterHelpers';
+
+export type { AppUpdateStateDto };
 
 export interface XdebugPathMappingDto {
   remoteRoot: string;
@@ -1836,5 +1839,13 @@ export interface AptanaBridgeAPI {
     onActivity: (cb: (activity: IslandActivity) => void) => () => void;
     onSnapshot: (cb: (snapshot: DesktopIslandSnapshot) => void) => () => void;
     onCommand: (cb: (cmd: DesktopIslandCommand) => void) => () => void;
+  };
+  updater: {
+    getState: () => Promise<AppUpdateStateDto>;
+    checkForUpdates: () => Promise<AppUpdateStateDto>;
+    downloadUpdate: () => Promise<AppUpdateStateDto>;
+    quitAndInstall: () => Promise<void>;
+    openReleasePage: () => Promise<void>;
+    onStateChanged: (cb: (state: AppUpdateStateDto) => void) => () => void;
   };
 }

@@ -9,6 +9,7 @@ import {
   Database,
   FolderKanban,
   Keyboard,
+  RefreshCw,
   Search,
   Sparkles,
   User,
@@ -542,7 +543,14 @@ const CATEGORIES: Array<{
 ];
 
 export const DocumentationModal: React.FC = () => {
-  const { docsModalOpen, setDocsModalOpen } = useIdeStore();
+  const {
+    docsModalOpen,
+    setDocsModalOpen,
+    appUpdateState,
+    checkForAppUpdates,
+    downloadAppUpdate,
+    installAppUpdate
+  } = useIdeStore();
   const [activeCategory, setActiveCategory] = useState<DocCategoryId>('all');
   const [searchText, setSearchText] = useState('');
 
@@ -797,7 +805,7 @@ export const DocumentationModal: React.FC = () => {
                       HMW <span style={{ color: 'var(--accent)' }}>Studio</span>
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                      Enterprise Desktop IDE
+                      Enterprise IDE • v{appUpdateState.currentVersion}
                     </div>
                   </div>
                 </div>
@@ -816,6 +824,46 @@ export const DocumentationModal: React.FC = () => {
                     <strong style={{ color: 'var(--text-primary)' }}>{APP_DOC_DATE}</strong>
                   </span>
                 </div>
+                <button
+                  type="button"
+                  className={
+                    appUpdateState.phase === 'available' || appUpdateState.phase === 'downloaded'
+                      ? 'btn btn-accent'
+                      : 'btn-ghost'
+                  }
+                  style={{
+                    marginTop: 4,
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    padding: '5px 8px',
+                    width: '100%'
+                  }}
+                  disabled={
+                    appUpdateState.phase === 'checking' || appUpdateState.phase === 'downloading'
+                  }
+                  onClick={() => {
+                    if (appUpdateState.phase === 'downloaded') {
+                      void installAppUpdate();
+                    } else if (appUpdateState.phase === 'available') {
+                      void downloadAppUpdate();
+                    } else {
+                      void checkForAppUpdates(false);
+                    }
+                  }}
+                >
+                  <RefreshCw size={12} />
+                  <span>
+                    {appUpdateState.phase === 'checking'
+                      ? 'Memeriksa Update...'
+                      : appUpdateState.phase === 'downloading'
+                        ? `Mengunduh ${Math.round(appUpdateState.downloadPercent ?? 0)}%`
+                        : appUpdateState.phase === 'downloaded'
+                          ? `Restart & Pasang v${appUpdateState.latestVersion}`
+                          : appUpdateState.phase === 'available'
+                            ? `Unduh Update v${appUpdateState.latestVersion}`
+                            : 'Cek Pembaruan GitHub'}
+                  </span>
+                </button>
               </div>
             </div>
           </aside>

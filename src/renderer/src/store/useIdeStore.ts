@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type {
+  AppUpdateStateDto,
   ConnectionProfile,
   DatabaseProfile,
   DbEngine,
@@ -458,6 +459,8 @@ interface IdeState {
 
   serverLogEntries: ParsedLogEntry[];
   logMonitorStatus: LogMonitorStatus;
+  appUpdateState: AppUpdateStateDto;
+  updateBannerDismissed: boolean;
 
   dismissSplash: () => void;
   setTheme: (theme: ThemeId) => void;
@@ -674,6 +677,12 @@ interface IdeState {
   setSecurityScannerModalOpen: (open: boolean) => void;
   setDbRbacModalOpen: (open: boolean) => void;
   setDocsModalOpen: (open: boolean) => void;
+  setAppUpdateState: (state: AppUpdateStateDto) => void;
+  dismissUpdateBanner: () => void;
+  checkForAppUpdates: (silent?: boolean) => Promise<AppUpdateStateDto | null>;
+  downloadAppUpdate: () => Promise<void>;
+  installAppUpdate: () => Promise<void>;
+  openAppReleasePage: () => Promise<void>;
   handleXdebugEvent: (evt: XdebugEventDto) => void;
   toggleXdebugBreakpoint: (filePath: string, line: number) => void;
   clearXdebugBreakpoints: () => void;
@@ -1075,6 +1084,12 @@ export const useIdeStore = create<IdeState>((set, get) => ({
     fileSize: 0,
     lastError: null
   },
+  appUpdateState: {
+    phase: 'idle',
+    currentVersion: '4.0.1',
+    canAutoInstall: false
+  },
+  updateBannerDismissed: false,
 
   dismissSplash: () => set({ splashVisible: false }),
 
@@ -4176,6 +4191,73 @@ export const useIdeStore = create<IdeState>((set, get) => ({
   setSecurityScannerModalOpen: (open) => set({ securityScannerModalOpen: open }),
   setDbRbacModalOpen: (open) => set({ dbRbacModalOpen: open }),
   setDocsModalOpen: (open) => set({ docsModalOpen: open }),
+  setAppUpdateState: (next) => {
+    const prev = get().appUpdateState;
+    const shouldReopenBanner =
+      (next.phase === 'available' &&
+        (prev.phase !== 'available' || prev.latestVersion !== next.latestVersion)) ||
+      (next.phase === 'downloaded' && prev.phase !== 'downloaded');
+    set((s) => ({
+      appUpdateState: next,
+      updateBannerDismissed: shouldReopenBanner ? false : s.updateBannerDismissed
+    }));
+  },
+  dismissUpdateBanner: () => set({ updateBannerDismissed: true }),
+  checkForAppUpdates: async (silent = false) => {
+    if (!silent) {
+      set({ updateBannerDismissed: false });
+    }
+    try {
+      const st = await window.aptana.updater.checkForUpdates();
+      get().setAppUpdateState(st);
+      if (!silent) {
+        if (st.phase === 'available' && st.latestVersion) {
+          get().showToast(`Pembaruan HMW Studio v${st.latestVersion} tersedia dari GitHub!`);
+        } else if (st.phase === 'up-to-date') {
+          get().showToast(`HMW Studio v${st.currentVersion} sudah merupakan versi terbaru.`);
+        } else if (st.phase === 'error') {
+          get().showToast(`Gagal memeriksa pembaruan: ${st.errorMessage || 'Periksa koneksi internet.'}`);
+        }
+      }
+      return st;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!silent) {
+        get().showToast(`Gagal memeriksa pembaruan: ${msg}`);
+      }
+      return null;
+    }
+  },
+  downloadAppUpdate: async () => {
+    set({ updateBannerDismissed: false });
+    try {
+      const st = await window.aptana.updater.downloadUpdate();
+      set({ appUpdateState: st });
+      if (st.phase === 'error') {
+        get().showToast(`Gagal mengunduh pembaruan: ${st.errorMessage || 'Coba unduh manual dari GitHub.'}`);
+      } else if (!st.canAutoInstall) {
+        get().showToast('Halaman unduhan GitHub Release dibuka di browser.');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      get().showToast(`Gagal mengunduh pembaruan: ${msg}`);
+    }
+  },
+  installAppUpdate: async () => {
+    try {
+      await window.aptana.updater.quitAndInstall();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      get().showToast(`Gagal memasang pembaruan: ${msg}`);
+    }
+  },
+  openAppReleasePage: async () => {
+    try {
+      await window.aptana.updater.openReleasePage();
+    } catch {
+      // ignore
+    }
+  },
   handleXdebugEvent: (evt) => {
     if (evt.type === 'state' && evt.state) {
       const prev = get().xdebugState;

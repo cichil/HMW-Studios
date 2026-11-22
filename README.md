@@ -47,17 +47,24 @@
 
 ---
 
-## Cara Download & Instalasi (Windows 10/11 x64)
+## Cara Download, Instalasi & Auto-Update (Windows 10/11 x64)
 
-### Opsi 1 — Installer Windows *(Paling Mudah, Tanpa Node.js)*
+### Opsi 1 — Installer Windows *(Paling Mudah, Mendukung Auto-Update Otomatis)*
 1. Buka halaman **[GitHub Releases](https://github.com/cichil/HMW-Studios/releases)**.
-2. Unduh file **`HMW-Studio-Setup-4.0.0-x64.exe`**.
+2. Unduh file **`HMW-Studio-Setup-4.0.1-x64.exe`** (atau versi terbaru).
 3. Klik 2× file installer, pilih folder tujuan instalasi, lalu klik **Install** (otomatis membuat shortcut di **Desktop** & **Start Menu** serta *Uninstaller* resmi di Windows Apps).
+4. **Auto-Update Bawaan**: setiap kali rilis baru terbit di GitHub, HMW Studio otomatis menampilkan banner pembaruan — cukup klik **`Unduh & Pasang`** → **`Restart & Pasang Sekarang`** tanpa perlu download manual lagi (atau klik **`v4.0.1 • ↻ Update`** di pojok kanan bawah kapan saja).
 
 ### Opsi 2 — Versi Portable `.ZIP` *(Tanpa Instalasi)*
 1. Unduh **`HMW-Studio-win-x64.zip`** dari halaman **[GitHub Releases](https://github.com/cichil/HMW-Studios/releases)**.
 2. Ekstrak ke folder mana saja (misalnya `C:\Tools\HMW-Studio\`).
-3. Klik 2× **`HMW Studio.exe`** — langsung berjalan tanpa instalasi.
+3. Klik 2× **`HMW Studio.exe`** — langsung berjalan tanpa instalasi (akan memberi notifikasi otomatis bila ada versi baru di GitHub dengan 1-klik link unduh).
+
+### Rilis Otomatis via GitHub Actions (`.github/workflows/release.yml`)
+Setiap kali pengembang menaikkan `"version"` di `package.json` lalu `git push origin main` (atau push tag `v*`), **GitHub Actions** secara otomatis:
+1. Menjalankan seluruh uji otomatis (`npm test`) & kompilasi TypeScript + Vite (`npm run build`).
+2. Memaketkan **`HMW-Studio-Setup-<versi>-x64.exe`**, **`.blockmap`**, **`HMW-Studio-win-x64.zip`**, dan **`latest.yml`** langsung di runner Windows GitHub (bebas batas upload 25 MB web browser!).
+3. Menerbitkan halaman **GitHub Release** secara otomatis sehingga aplikasi di komputer seluruh tim langsung mendeteksi update baru.
 
 > **Tips Tim:** Untuk memindahkan seluruh profil SFTP, Database, *Saved Queries*, & koleksi HTTP ke komputer baru, gunakan fitur **`Proyek` → `Ekspor / Impor .hmwpack`** (terenkripsi AES-256-GCM).
 
@@ -76,14 +83,15 @@ npm.cmd install
 # 3. Jalankan mode pengembangan (Hot-Reload)
 npm.cmd run dev
 
-# 4. Jalankan seluruh 61 uji otomatis (Vitest)
+# 4. Jalankan seluruh uji otomatis (Vitest)
 npm.cmd test
 
-# 5. Bangun Installer Windows (HMW-Studio-Setup-4.0.0-x64.exe) + Portable (.zip) + Unpacked (.exe)
+# 5. Bangun Installer Windows (HMW-Studio-Setup-<ver>-x64.exe) + Portable (.zip) + Unpacked (.exe)
 npm.cmd run dist:win
 ```
 
 Hasil build tersedia di folder `release\`:
-- `release\HMW-Studio-Setup-4.0.0-x64.exe` — **Installer Windows (NSIS Setup)**
+- `release\HMW-Studio-Setup-4.0.1-x64.exe` — **Installer Windows (NSIS Setup)**
 - `release\HMW-Studio-win-x64.zip` — **Arsip Portable Standalone x64**
+- `release\latest.yml` — **Manifest Auto-Updater (`electron-updater`)**
 - `release\win-unpacked\HMW Studio.exe` — **Aplikasi Desktop Native Siap Jalankan**

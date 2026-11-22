@@ -1,0 +1,90 @@
+name: Build & Auto-Release HMW Studio (Windows x64)
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine release version & check if release needed
+        id: meta
+        shell: pwsh
+        run: |
+          $pkg = Get-Content -Raw -Path "package.json" | ConvertFrom-Json
+          $ver = $pkg.version
+          $tag = "v$ver"
+          "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+          if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch" -or $env:GITHUB_REF_TYPE -eq "tag") {
+            "should_release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "Release triggered explicitly for $tag"
+          } else {
+            # On push to main: automatically publish ONLY when v<version> tag doesn't exist yet
+            $existingTag = git tag -l $tag
+            if ([string]::IsNullOrWhiteSpace($existingTag)) {
+              "should_release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              Write-Host "New version detected ($tag) — will build & publish release automatically!"
+            } else {
+              "should_release=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              Write-Host "Tag $tag already exists. Bump version in package.json to trigger a new release."
+            }
+          }
+
+      - name: Setup Node.js 24
+        if: steps.meta.outputs.should_release == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.meta.outputs.should_release == 'true'
+        run: npm ci
+
+      - name: Run automated tests (Vitest)
+        if: steps.meta.outputs.should_release == 'true'
+        run: npm test
+
+      - name: Build production bundle
+        if: steps.meta.outputs.should_release == 'true'
+        run: npm run build
+
+      - name: Package Windows Installer, Blockmap, latest.yml & Portable ZIP
+        if: steps.meta.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish never
+
+      - name: Publish Release & Attach Binaries (Setup.exe, ZIP, Blockmap, latest.yml)
+        if: steps.meta.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: HMW Studio v${{ steps.meta.outputs.version }} Enterprise (Windows x64)
+          generate_release_notes: true
+          make_latest: true
+          files: |
+            release/HMW-Studio-Setup-*-x64.exe
+            release/HMW-Studio-Setup-*-x64.exe.blockmap
+            release/HMW-Studio-win-x64.zip
+            release/latest.yml

@@ -60,6 +60,7 @@ import {
   type WorkspaceBundlePayload
 } from '../services/workspaceBundleCrypto';
 import { XdebugService } from '../services/xdebugService';
+import { AutoUpdaterService } from '../services/autoUpdaterService';
 import {
   ConnectionManager,
   FallbackAesVault,
@@ -227,6 +228,8 @@ export function registerIpcHandlers(): RegisteredBackendServices {
   const httpClient = new HttpClientService(userDataDir);
   const xdebug = new XdebugService();
   xdebug.onEvent((evt) => broadcast('xdebug:event', evt));
+  const autoUpdaterService = new AutoUpdaterService();
+  autoUpdaterService.init();
 
   let activeWorkspacePath: string | null = null;
 
@@ -2074,6 +2077,15 @@ export function registerIpcHandlers(): RegisteredBackendServices {
     };
   });
 
+  // Auto-Updater (GitHub Releases + electron-updater)
+  ipcMain.handle('updater:getState', () => autoUpdaterService.getState());
+  ipcMain.handle('updater:checkForUpdates', () => autoUpdaterService.checkForUpdates(false));
+  ipcMain.handle('updater:downloadUpdate', () => autoUpdaterService.downloadUpdate());
+  ipcMain.handle('updater:quitAndInstall', () => {
+    autoUpdaterService.quitAndInstall();
+  });
+  ipcMain.handle('updater:openReleasePage', () => autoUpdaterService.openReleasePage());
+
   return {
     workspace,
     projects,
@@ -2092,6 +2104,7 @@ export function registerIpcHandlers(): RegisteredBackendServices {
     history,
     gemini,
     dispose: async () => {
+      autoUpdaterService.dispose();
       await xdebug.stop();
       dbScheduler.stop();
       logMonitor.stop();

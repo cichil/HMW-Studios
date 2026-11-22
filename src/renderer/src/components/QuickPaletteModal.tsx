@@ -89,6 +89,7 @@ export const QuickPaletteModal: React.FC = () => {
     setTheme,
     setSuggestMode,
     setDocsModalOpen,
+    checkForAppUpdates,
     showToast
   } = useIdeStore();
 
@@ -417,6 +418,11 @@ export const QuickPaletteModal: React.FC = () => {
         run: () => setDocsModalOpen(true)
       },
       {
+        id: 'act-check-app-update',
+        label: 'Pembaruan Aplikasi: Cek Update HMW Studio Otomatis dari GitHub Releases',
+        run: () => void checkForAppUpdates(false)
+      },
+      {
         id: 'act-suggest-calm',
         label: 'Saran Kode (Auto-Suggestion): Mode Santai — Tidak Mengganggu (Tab terima, Enter baris baru)',
         run: () => {
@@ -478,6 +484,7 @@ export const QuickPaletteModal: React.FC = () => {
     setTheme,
     setSuggestMode,
     setDocsModalOpen,
+    checkForAppUpdates,
     showToast,
     togglePreviewPane,
     setDbArchitectTab,
